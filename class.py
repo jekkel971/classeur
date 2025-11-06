@@ -71,4 +71,29 @@ if st.button("Analyser 🧠"):
 
         # Graphique probabilités
         st.subheader("Graphique des probabilités de victoire")
-        chart = alt.Chart(df_analysis_
+        chart = alt.Chart(df_analysis).transform_fold(
+            ["prob_home","prob_away"],
+            as_=["Équipe","Probabilité"]
+        ).mark_bar().encode(
+            x=alt.X("Probabilité:Q"),
+            y=alt.Y("home_team:N", sort="-x"),
+            color=alt.Color("Équipe:N")
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+        # Graphique Score sécurité vs Winner
+        st.subheader("Score de sécurité vs Vainqueur probable")
+        chart2 = alt.Chart(df_analysis).mark_bar().encode(
+            x=alt.X("score_securite:Q", title="Score de sécurité"),
+            y=alt.Y("home_team:N", sort="-x"),
+            color=alt.Color("Winner:N", title="Vainqueur probable")
+        )
+        st.altair_chart(chart2, use_container_width=True)
+
+        # Télécharger CSV
+        st.download_button(
+            "📥 Télécharger les résultats CSV",
+            df_analysis.to_csv(index=False).encode("utf-8"),
+            "matchs_prédictifs.csv",
+            "text/csv"
+        )
