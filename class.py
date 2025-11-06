@@ -1,143 +1,136 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import altair as alt
 
-st.set_page_config(page_title="Analyse Matchs & Mise - Forme Récente", layout="wide")
-st.title("⚽ Analyse Matchs avec Forme Récente et Analyse Textuelle")
+st.set_page_config(page_title="Analyse de matchs", layout="wide")
+st.title("⚽ Analyseur de matchs manuel – version avancée")
 
-# ---------------------------
-# Initialisation
-# ---------------------------
+# Initialiser le DataFrame
 if "matches_df" not in st.session_state:
-    columns = [
-        "home_team","away_team","cote_home","cote_away",
-        "home_wins","home_draws","home_losses","home_goals_scored","home_goals_against",
-        "away_wins","away_draws","away_losses","away_goals_scored","away_goals_against",
-        "home_last5_wins","home_last5_draws","home_last5_losses",
-        "away_last5_wins","away_last5_draws","away_last5_losses"
-    ]
-    st.session_state.matches_df = pd.DataFrame(columns=columns)
+    st.session_state.matches_df = pd.DataFrame(columns=[
+        "home_team", "away_team", "cote_home", "cote_away",
+        "home_wins", "home_draws", "home_losses",
+        "home_goals_scored", "home_goals_against",
+        "home_last5",
+        "away_wins", "away_draws", "away_losses",
+        "away_goals_scored", "away_goals_against",
+        "away_last5"
+    ])
 
-# ---------------------------
-# Formulaire d’entrée
-# ---------------------------
-st.header("Ajouter un match")
+# ---------------- FORMULAIRE ----------------
 with st.form("match_form", clear_on_submit=True):
     st.subheader("Équipes et Cotes")
     home_team = st.text_input("Équipe Domicile")
-    away_team = st.text_input("Équipe Extérieur")
+    away_team = st.text_input("Équipe Extérieure")
     cote_home = st.number_input("Cote Domicile", 1.01, 10.0, 1.5)
-    cote_away = st.number_input("Cote Extérieur", 1.01, 10.0, 1.5)
+    cote_away = st.number_input("Cote Extérieure", 1.01, 10.0, 1.5)
 
-    st.subheader("Historique global Domicile")
-    home_wins = st.number_input("Victoires domicile", 0, 50, 0)
-    home_draws = st.number_input("Nuls domicile", 0, 50, 0)
-    home_losses = st.number_input("Défaites domicile", 0, 50, 0)
-    home_goals_scored = st.number_input("Buts marqués domicile", 0, 200, 0)
-    home_goals_against = st.number_input("Buts encaissés domicile", 0, 200, 0)
+    st.subheader("Historique Domicile (saison)")
+    home_wins = st.number_input("Victoires Domicile", 0, 50, 0)
+    home_draws = st.number_input("Nuls Domicile", 0, 50, 0)
+    home_losses = st.number_input("Défaites Domicile", 0, 50, 0)
+    home_goals_scored = st.number_input("Buts marqués Domicile", 0, 200, 0)
+    home_goals_against = st.number_input("Buts encaissés Domicile", 0, 200, 0)
+    home_last5 = st.text_input("5 derniers matchs Domicile (ex: v,v,n,d,d)")
 
-    st.subheader("Forme récente (5 derniers matchs) Domicile")
-    home_last5_wins = st.number_input("Victoires (5 derniers)", 0, 5, 0)
-    home_last5_draws = st.number_input("Nuls (5 derniers)", 0, 5, 0)
-    home_last5_losses = st.number_input("Défaites (5 derniers)", 0, 5, 0)
+    st.subheader("Historique Extérieur (saison)")
+    away_wins = st.number_input("Victoires Extérieures", 0, 50, 0)
+    away_draws = st.number_input("Nuls Extérieurs", 0, 50, 0)
+    away_losses = st.number_input("Défaites Extérieures", 0, 50, 0)
+    away_goals_scored = st.number_input("Buts marqués Extérieur", 0, 200, 0)
+    away_goals_against = st.number_input("Buts encaissés Extérieur", 0, 200, 0)
+    away_last5 = st.text_input("5 derniers matchs Extérieur (ex: v,d,v,n,d)")
 
-    st.subheader("Historique global Extérieur")
-    away_wins = st.number_input("Victoires extérieur", 0, 50, 0)
-    away_draws = st.number_input("Nuls extérieur", 0, 50, 0)
-    away_losses = st.number_input("Défaites extérieur", 0, 50, 0)
-    away_goals_scored = st.number_input("Buts marqués extérieur", 0, 200, 0)
-    away_goals_against = st.number_input("Buts encaissés extérieur", 0, 200, 0)
+    submitted = st.form_submit_button("➕ Ajouter le match")
 
-    st.subheader("Forme récente (5 derniers matchs) Extérieur")
-    away_last5_wins = st.number_input("Victoires (5 derniers)", 0, 5, 0)
-    away_last5_draws = st.number_input("Nuls (5 derniers)", 0, 5, 0)
-    away_last5_losses = st.number_input("Défaites (5 derniers)", 0, 5, 0)
-
-    submitted = st.form_submit_button("Ajouter le match")
-    if submitted:
-        new_row = pd.DataFrame([{
-            "home_team": home_team, "away_team": away_team,
-            "cote_home": cote_home, "cote_away": cote_away,
-            "home_wins": home_wins, "home_draws": home_draws, "home_losses": home_losses,
-            "home_goals_scored": home_goals_scored, "home_goals_against": home_goals_against,
-            "away_wins": away_wins, "away_draws": away_draws, "away_losses": away_losses,
-            "away_goals_scored": away_goals_scored, "away_goals_against": away_goals_against,
-            "home_last5_wins": home_last5_wins, "home_last5_draws": home_last5_draws, "home_last5_losses": home_last5_losses,
-            "away_last5_wins": away_last5_wins, "away_last5_draws": away_last5_draws, "away_last5_losses": away_last5_losses
+# ---------------- AJOUT DES DONNÉES ----------------
+if submitted:
+    st.session_state.matches_df = pd.concat([
+        st.session_state.matches_df,
+        pd.DataFrame([{
+            "home_team": home_team,
+            "away_team": away_team,
+            "cote_home": cote_home,
+            "cote_away": cote_away,
+            "home_wins": home_wins,
+            "home_draws": home_draws,
+            "home_losses": home_losses,
+            "home_goals_scored": home_goals_scored,
+            "home_goals_against": home_goals_against,
+            "home_last5": home_last5.lower(),
+            "away_wins": away_wins,
+            "away_draws": away_draws,
+            "away_losses": away_losses,
+            "away_goals_scored": away_goals_scored,
+            "away_goals_against": away_goals_against,
+            "away_last5": away_last5.lower(),
         }])
-        st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row], ignore_index=True)
-        st.success(f"Match {home_team} vs {away_team} ajouté !")
+    ], ignore_index=True)
+    st.success(f"✅ Match ajouté : {home_team} vs {away_team}")
 
-# ---------------------------
-# Fonctions d’analyse
-# ---------------------------
-def calculate_score_and_prob(df):
-    df = df.copy().fillna(0)
-    
-    df["diff_cote"] = abs(df["cote_home"] - df["cote_away"])
-    df["home_form"] = df["home_wins"]*3 + df["home_draws"] - df["home_losses"]
-    df["away_form"] = df["away_wins"]*3 + df["away_draws"] - df["away_losses"]
-    df["goal_diff"] = (df["home_goals_scored"] - df["home_goals_against"]) - (df["away_goals_scored"] - df["away_goals_against"])
+# ---------------- ALGORITHME D’ANALYSE ----------------
+def calculate_form_score(sequence):
+    """Calcule un score basé sur les 5 derniers matchs"""
+    mapping = {"v": 3, "n": 1, "d": 0}
+    seq = [mapping.get(x.strip(), 0) for x in sequence.split(",")]
+    if len(seq) < 5:
+        seq += [0] * (5 - len(seq))
+    # pondération plus forte sur les matchs récents
+    weights = np.array([5, 4, 3, 2, 1])
+    return np.dot(seq, weights) / 15  # max 1.0
 
-    df["home_recent_form"] = (df["home_last5_wins"]*3 + df["home_last5_draws"]) / 15
-    df["away_recent_form"] = (df["away_last5_wins"]*3 + df["away_last5_draws"]) / 15
+def analyze(df):
+    df = df.copy()
+    results = []
+    for _, row in df.iterrows():
+        home_form = calculate_form_score(row["home_last5"])
+        away_form = calculate_form_score(row["away_last5"])
+        attack_strength = row["home_goals_scored"] - row["away_goals_against"]
+        defense_strength = row["away_goals_scored"] - row["home_goals_against"]
 
-    df["score_securite"] = (
-        (1 - df["diff_cote"]/10)*40 +
-        ((df["home_form"] - df["away_form"])/20)*25 +
-        ((df["goal_diff"]+10)/20)*15 +
-        ((df["home_recent_form"] - df["away_recent_form"])*100)*20
-    ).clip(0, 100)
+        score = (home_form * 0.4 + (attack_strength - defense_strength) * 0.02) * 100
+        prob_home = 1 / (1 + np.exp(-score / 10))
+        prob_away = 1 - prob_home
+        winner = row["home_team"] if prob_home > prob_away else row["away_team"]
 
-    df["prob_home"] = np.exp(df["score_securite"]) / (np.exp(df["score_securite"]) + np.exp(100 - df["score_securite"]))
-    df["prob_away"] = 1 - df["prob_home"]
-    df["Winner"] = np.where(df["prob_home"] > df["prob_away"], df["home_team"], df["away_team"])
-    
-    # 🧩 Analyse textuelle de la forme récente
-    def analyse_forme(equipe, wins, draws, losses):
-        total = wins + draws + losses
-        if total == 0:
-            return f"{equipe} n’a pas encore joué récemment."
-        ratio_victoire = wins / total
-        if ratio_victoire >= 0.8:
-            return f"{equipe} est en très grande forme ({wins}V sur les {total} derniers matchs) 🔥"
-        elif ratio_victoire >= 0.6:
-            return f"{equipe} est en bonne forme ({wins}V sur les {total} derniers matchs)."
-        elif ratio_victoire >= 0.4:
-            return f"{equipe} est en forme moyenne ({wins}V sur les {total} derniers matchs)."
-        else:
-            return f"{equipe} est en difficulté ({wins}V sur les {total} derniers matchs)."
+        results.append({
+            "home_team": row["home_team"],
+            "away_team": row["away_team"],
+            "Winner": winner,
+            "Probabilité victoire": round(max(prob_home, prob_away) * 100, 2),
+            "Score Sécurité": round(abs(prob_home - prob_away) * 100, 1),
+        })
+    return pd.DataFrame(results)
 
-    df["analyse_home"] = df.apply(lambda r: analyse_forme(r["home_team"], r["home_last5_wins"], r["home_last5_draws"], r["home_last5_losses"]), axis=1)
-    df["analyse_away"] = df.apply(lambda r: analyse_forme(r["away_team"], r["away_last5_wins"], r["away_last5_draws"], r["away_last5_losses"]), axis=1)
-    return df
+# ---------------- AFFICHAGE ----------------
+if len(st.session_state.matches_df) > 0:
+    st.subheader("📊 Analyse des matchs saisis")
+    df_analysis = analyze(st.session_state.matches_df)
+    st.dataframe(df_analysis.sort_values(by="Score Sécurité", ascending=False), use_container_width=True)
 
-# ---------------------------
-# Analyse et affichage
-# ---------------------------
-if st.button("Analyser 🧠"):
-    if st.session_state.matches_df.empty:
-        st.warning("Veuillez ajouter au moins un match.")
-    else:
-        df_analysis = calculate_score_and_prob(st.session_state.matches_df)
+    # Calcul des mises avec Kelly
+    st.subheader("💰 Recommandation de mise (Kelly simplifié)")
+    budget_total = st.number_input("Budget total (€)", 1, 10000, 100, step=10)
+    df_analysis["cote_home"] = st.session_state.matches_df["cote_home"]
+    df_analysis["cote_away"] = st.session_state.matches_df["cote_away"]
 
-        st.subheader("🏆 Analyse complète des matchs")
-        st.dataframe(df_analysis[["home_team","away_team","Winner","score_securite","prob_home","prob_away"]]
-                     .sort_values(by="score_securite", ascending=False))
+    mises = []
+    for i, row in df_analysis.iterrows():
+        cote = row["cote_home"] if row["Winner"] == row["home_team"] else row["cote_away"]
+        p = row["Probabilité victoire"] / 100
+        b = cote - 1
+        q = 1 - p
+        f_star = max((b * p - q) / b, 0)
+        mises.append(round(f_star * budget_total, 2))
 
-        st.subheader("🧩 Analyse textuelle de la forme des équipes")
-        for _, row in df_analysis.iterrows():
-            st.markdown(f"**{row['home_team']} vs {row['away_team']}**")
-            st.write(f"🏠 {row['analyse_home']}")
-            st.write(f"🚗 {row['analyse_away']}")
-            st.write(f"👉 **Vainqueur probable : {row['Winner']}** (sécurité : {row['score_securite']:.1f}%)")
-            st.markdown("---")
+    df_analysis["Mise conseillée (€)"] = mises
+    st.dataframe(df_analysis[["home_team","away_team","Winner","Probabilité victoire","Score Sécurité","Mise conseillée (€)"]], use_container_width=True)
 
-        st.subheader("Graphique de la sécurité")
-        chart = alt.Chart(df_analysis).mark_bar().encode(
-            x="score_securite:Q",
-            y="home_team:N",
-            color="Winner:N"
-        )
-        st.altair_chart(chart, use_container_width=True)
+    # Télécharger les résultats
+    st.download_button("📥 Télécharger les résultats (CSV)",
+                       df_analysis.to_csv(index=False).encode("utf-8"),
+                       "analyse_matchs.csv",
+                       "text/csv")
+
+else:
+    st.info("Ajoute au moins un match pour commencer l’analyse ⚙️")
