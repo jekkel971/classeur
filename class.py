@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
-st.set_page_config(page_title="Analyse Matchs Prédictive", layout="wide")
-st.title("⚽ Analyse Prédictive des Matchs (Version stable)")
-st.caption("Ajoutez vos matchs manuellement pour obtenir les matchs les plus sûrs avec probabilités de victoire")
+st.set_page_config(page_title="Analyse Matchs & Mise", layout="wide")
+st.title("⚽ Analyse Matchs et Calcul de Mise")
+st.caption("Ajoute tes matchs, analyse leur sécurité et calcule la mise optimale selon ton budget")
 
 # ---------------------------
 # Initialisation session_state
@@ -17,7 +17,7 @@ if "matches_df" not in st.session_state:
     st.session_state.matches_df = pd.DataFrame(columns=columns)
 
 # ---------------------------
-# Formulaire unique pour ajouter un match
+# Formulaire pour ajouter un match
 # ---------------------------
 st.header("Ajouter un match")
 with st.form("match_form", clear_on_submit=True):
@@ -67,7 +67,6 @@ with st.form("match_form", clear_on_submit=True):
 # ---------------------------
 def calculate_score_and_prob(df):
     df = df.copy()
-    # Remplacer les valeurs non numériques par 0
     numeric_cols = ["cote_home","cote_away","home_wins","home_draws","home_losses",
                     "home_goals_scored","home_goals_against","away_wins","away_draws","away_losses",
                     "away_goals_scored","away_goals_against"]
@@ -129,3 +128,19 @@ if st.button("Analyser 🧠"):
             "matchs_prédictifs.csv",
             "text/csv"
         )
+
+        # ---------------------------
+        # Calcul de mise selon Kelly Criterion simplifié
+        # ---------------------------
+        st.subheader("💰 Recommandation de mise")
+        budget_total = st.number_input("Budget total (€)", 1, 10000, 100, step=10)
+
+        df = df_analysis.copy()
+        # Calcul b, probabilité du vainqueur
+        df["b"] = df.apply(lambda row: row["cote_home"]-1 if row["Winner"]==row["home_team"] else row["cote_away"]-1, axis=1)
+        df["p"] = df.apply(lambda row: row["prob_home"] if row["Winner"]==row["home_team"] else row["prob_away"], axis=1)
+        df["q"] = 1 - df["p"]
+        df["f_star"] = ((df["b"] * df["p"] - df["q"]) / df["b"]).clip(lower=0)  # fraction optimale
+        df["Mise (€)"] = (df["f_star"] * budget_total).round(2)
+
+        st.dataframe(df[["home_team","away_team","Winner","p","b","Mise (€)"]])
