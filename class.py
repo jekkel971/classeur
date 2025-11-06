@@ -4,7 +4,7 @@ import numpy as np
 import altair as alt
 
 st.set_page_config(page_title="Analyse Matchs Prédictive", layout="wide")
-st.title("⚽ Analyse Prédictive des Matchs (Version finale)")
+st.title("⚽ Analyse Prédictive des Matchs (Version stable)")
 st.caption("Ajoutez vos matchs manuellement pour obtenir les matchs les plus sûrs avec probabilités de victoire")
 
 # ---------------------------
@@ -43,7 +43,6 @@ with st.form("match_form", clear_on_submit=True):
 
     submitted = st.form_submit_button("Ajouter le match")
     if submitted:
-        # Remplacer .append() par pd.concat()
         new_row = pd.DataFrame([{
             "home_team": home_team,
             "away_team": away_team,
@@ -64,17 +63,26 @@ with st.form("match_form", clear_on_submit=True):
         st.success(f"Match {home_team} vs {away_team} ajouté !")
 
 # ---------------------------
-# Fonction analyse
+# Fonction analyse stable
 # ---------------------------
 def calculate_score_and_prob(df):
     df = df.copy()
+    # Remplacer les valeurs non numériques par 0
+    numeric_cols = ["cote_home","cote_away","home_wins","home_draws","home_losses",
+                    "home_goals_scored","home_goals_against","away_wins","away_draws","away_losses",
+                    "away_goals_scored","away_goals_against"]
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
     df["diff_cote"] = abs(df["cote_home"] - df["cote_away"])
     df["home_form"] = df["home_wins"]*3 + df["home_draws"] - df["home_losses"]
     df["away_form"] = df["away_wins"]*3 + df["away_draws"] - df["away_losses"]
     df["goal_diff"] = (df["home_goals_scored"] - df["home_goals_against"]) - (df["away_goals_scored"] - df["away_goals_against"])
-    
+
     df["score_securite"] = (1 - df["diff_cote"]/10)*50 + ((df["home_form"] - df["away_form"])/20)*30 + ((df["goal_diff"]+10)/20)*20
-    df["prob_home"] = np.exp(df["score_securite"])/ (np.exp(df["score_securite"]) + np.exp(100 - df["score_securite"]))
+    df["score_securite"] = pd.to_numeric(df["score_securite"], errors="coerce").fillna(0)
+
+    df["prob_home"] = np.exp(df["score_securite"]) / (np.exp(df["score_securite"]) + np.exp(100 - df["score_securite"]))
     df["prob_away"] = 1 - df["prob_home"]
     df["Winner"] = np.where(df["prob_home"] > df["prob_away"], df["home_team"], df["away_team"])
     return df
