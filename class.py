@@ -4,7 +4,7 @@ import numpy as np
 import altair as alt
 
 st.set_page_config(page_title="Analyse Matchs Prédictive", layout="wide")
-st.title("⚽ Analyse Prédictive des Matchs (Formulaire corrigé)")
+st.title("⚽ Analyse Prédictive des Matchs (Version finale)")
 st.caption("Ajoutez vos matchs manuellement pour obtenir les matchs les plus sûrs avec probabilités de victoire")
 
 # ---------------------------
@@ -43,7 +43,8 @@ with st.form("match_form", clear_on_submit=True):
 
     submitted = st.form_submit_button("Ajouter le match")
     if submitted:
-        st.session_state.matches_df = st.session_state.matches_df.append({
+        # Remplacer .append() par pd.concat()
+        new_row = pd.DataFrame([{
             "home_team": home_team,
             "away_team": away_team,
             "cote_home": cote_home,
@@ -58,7 +59,8 @@ with st.form("match_form", clear_on_submit=True):
             "away_losses": away_losses,
             "away_goals_scored": away_goals_scored,
             "away_goals_against": away_goals_against
-        }, ignore_index=True)
+        }])
+        st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row], ignore_index=True)
         st.success(f"Match {home_team} vs {away_team} ajouté !")
 
 # ---------------------------
