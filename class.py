@@ -37,7 +37,7 @@ def calculate_score_and_prob(df):
     # Score combiné pondéré
     df["score_securite"] = (1 - df["diff_cote"]/10)*50 + ((df["home_form"] - df["away_form"])/20)*30 + ((df["goal_diff"]+10)/20)*20
     
-    # Probabilités de victoire (softmax simplifié)
+    # Probabilités de victoire
     df["prob_home"] = np.exp(df["score_securite"])/ (np.exp(df["score_securite"]) + np.exp(100 - df["score_securite"]))
     df["prob_away"] = 1 - df["prob_home"]
     
@@ -56,5 +56,19 @@ if st.button("Analyser 🧠"):
         df_analysis = calculate_score_and_prob(st.session_state.matches_df)
         st.session_state.df_analysis = df_analysis
 
+        # Résultats complets
         st.header("Résultats des matchs")
-        st.dataframe(df_analysis.sort_values(by
+        st.dataframe(
+            df_analysis.sort_values(by="score_securite", ascending=False)
+        )
+
+        # Top 3–4 matchs les plus sûrs
+        st.subheader("🏆 Top 3–4 Matchs les plus sûrs")
+        top = df_analysis.sort_values(by="score_securite", ascending=False).head(4)
+        st.dataframe(
+            top[["home_team","away_team","Winner","score_securite","prob_home","prob_away"]]
+        )
+
+        # Graphique probabilités
+        st.subheader("Graphique des probabilités de victoire")
+        chart = alt.Chart(df_analysis_
