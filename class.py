@@ -4,7 +4,7 @@ import numpy as np
 import altair as alt
 
 st.set_page_config(page_title="Analyse Matchs Prédictive", layout="wide")
-st.title("⚽ Analyse Prédictive des Matchs (Formulaire)")
+st.title("⚽ Analyse Prédictive des Matchs (Formulaire corrigé)")
 st.caption("Ajoutez vos matchs manuellement pour obtenir les matchs les plus sûrs avec probabilités de victoire")
 
 # ---------------------------
@@ -17,31 +17,31 @@ if "matches_df" not in st.session_state:
     st.session_state.matches_df = pd.DataFrame(columns=columns)
 
 # ---------------------------
-# Formulaire pour ajouter un match
+# Formulaire unique pour ajouter un match
 # ---------------------------
 st.header("Ajouter un match")
 with st.form("match_form", clear_on_submit=True):
+    st.subheader("Équipes et Cotes")
     home_team = st.text_input("Équipe Domicile")
     away_team = st.text_input("Équipe Extérieur")
-    cote_home = st.number_input("Cote Domicile", 1.01, 10.0, 1.5)
-    cote_away = st.number_input("Cote Extérieur", 1.01, 10.0, 1.5)
-    
+    cote_home = st.number_input("Cote Domicile", 1.01, 10.0, 1.5, key="cote_home")
+    cote_away = st.number_input("Cote Extérieur", 1.01, 10.0, 1.5, key="cote_away")
+
     st.subheader("Historique Domicile")
-    home_wins = st.number_input("Victoires", 0, 50, 0)
-    home_draws = st.number_input("Nuls", 0, 50, 0)
-    home_losses = st.number_input("Défaites", 0, 50, 0)
-    home_goals_scored = st.number_input("Buts marqués", 0, 200, 0)
-    home_goals_against = st.number_input("Buts encaissés", 0, 200, 0)
-    
+    home_wins = st.number_input("Victoires domicile", 0, 50, 0, key="home_wins")
+    home_draws = st.number_input("Nuls domicile", 0, 50, 0, key="home_draws")
+    home_losses = st.number_input("Défaites domicile", 0, 50, 0, key="home_losses")
+    home_goals_scored = st.number_input("Buts marqués domicile", 0, 200, 0, key="home_goals_scored")
+    home_goals_against = st.number_input("Buts encaissés domicile", 0, 200, 0, key="home_goals_against")
+
     st.subheader("Historique Extérieur")
-    away_wins = st.number_input("Victoires", 0, 50, 0)
-    away_draws = st.number_input("Nuls", 0, 50, 0)
-    away_losses = st.number_input("Défaites", 0, 50, 0)
-    away_goals_scored = st.number_input("Buts marqués", 0, 200, 0)
-    away_goals_against = st.number_input("Buts encaissés", 0, 200, 0)
-    
+    away_wins = st.number_input("Victoires extérieur", 0, 50, 0, key="away_wins")
+    away_draws = st.number_input("Nuls extérieur", 0, 50, 0, key="away_draws")
+    away_losses = st.number_input("Défaites extérieur", 0, 50, 0, key="away_losses")
+    away_goals_scored = st.number_input("Buts marqués extérieur", 0, 200, 0, key="away_goals_scored")
+    away_goals_against = st.number_input("Buts encaissés extérieur", 0, 200, 0, key="away_goals_against")
+
     submitted = st.form_submit_button("Ajouter le match")
-    
     if submitted:
         st.session_state.matches_df = st.session_state.matches_df.append({
             "home_team": home_team,
